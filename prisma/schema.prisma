@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model for property seekers and owners
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  phone       String?
+  address     String?
+  role        UserRole @default(CLIENT)
+  avatar      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  properties  Property[]
+  inquiries   Inquiry[]
+  reviews     Review[]
+  
+  @@map("users")
+}
+
+// Property model for real estate listings
+model Property {
+  id              String         @id @default(cuid())
+  title           String
+  description     String
+  type            PropertyType
+  status          PropertyStatus @default(AVAILABLE)
+  price           Float
+  priceType       PriceType      @default(MONTHLY)
+  address         String
+  city            String
+  province        String
+  postalCode      String?
+  area            Float
+  areaUnit        String         @default("m²")
+  bedrooms        Int?
+  bathrooms       Int?
+  floors          Int?
+  yearBuilt       Int?
+  featured        Boolean        @default(false)
+  images          String?        // JSON string of image URLs
+  facilities      String?        // JSON string of facilities
+  ownerId         String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  // Relations
+  owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  inquiries       Inquiry[]
+  reviews         Review[]
+  
+  @@map("properties")
+}
+
+// Property inquiry model
+model Inquiry {
+  id          String       @id @default(cuid())
+  name        String
+  email       String
+  phone       String
+  message     String
+  status      InquiryStatus @default(PENDING)
+  propertyId  String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  // Relations
+  property    Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id])
+  userId      String?
+  
+  @@map("inquiries")
+}
+
+// Property review model
+model Review {
+  id          String   @id @default(cuid())
+  rating      Int
+  comment     String?
+  propertyId  String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@unique([propertyId, userId])
+  @@map("reviews")
+}
+
+// Meta Ads campaign model
+model Campaign {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  status          CampaignStatus @default(DRAFT)
+  budget          Float
+  startDate       DateTime
+  endDate         DateTime?
+  targetAudience  String?        // JSON string for targeting options
+  adCreatives     String?        // JSON string of ad creative URLs
+  propertyId      String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  @@map("campaigns")
+}
+
+// Enums
+enum UserRole {
+  CLIENT
+  AGENT
+  ADMIN
+}
+
+enum PropertyType {
+  RUMAH
+  RUKO
+  TANAH
+  APARTEMEN
+  VILLA
+  GUDANG
+  KANTOR
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  RENTED
+  SOLD
+  UNDER_CONTRACT
+  MAINTENANCE
+}
+
+enum PriceType {
+  MONTHLY
+  YEARLY
+  SALE
+  PER_METER
+}
+
+enum InquiryStatus {
+  PENDING
+  RESPONDED
+  RESOLVED
+  CANCELLED
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
